@@ -5,6 +5,7 @@
 from pyModbusTCP.server import ModbusServer, DataBank
 from pymongo import MongoClient
 
+import argparse
 import logging
 import pymongo
 import dotenv
@@ -39,39 +40,61 @@ logging.basicConfig(
 
 def main():
 
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('--auth', action='store_true')
+
+    args = parser.parse_args()
+    print(args)
+
     try:
 
-        server = ModbusServer(MODBUS_HOST, MODBUS_PORT, no_block=True)
-        server.start()
+        if args.auth:
+            dsn = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:{MONGO_PORT}"
+        else:
+            dsn = f"mongodb://{MONGO_HOST}:{MONGO_PORT}"
 
-        logging.debug("Modbus server listen in %s:%s", MODBUS_HOST, MODBUS_PORT)
-
-        dsn = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:{MONGO_PORT}"
         client = MongoClient(dsn)
 
-        logging.debug("Mongo DB connected to %s", dsn)
+        logging.info("Mongo DB connected to %s", dsn)
 
         db = client["pollos"]
         collection = db["registros"]
 
-        #state = [0]
-
-        logging.info("Server started and waiting")
-
         duration = 0.2
         counter = 0
+
+        '''
+        collection.insert_one({
+            "cameraId": 1, 
+            "xCm": 10, 
+            "yCm": 10, 
+            "timestamp": 1641418302778
+        })
+        '''
+
+        server = ModbusServer(MODBUS_HOST, MODBUS_PORT, no_block=True)
+        server.start()
+
+        logging.info("Modbus server listen in %s:%s", MODBUS_HOST, MODBUS_PORT)
 
         while True:
 
             try:
-
                 if counter > MONGO_POLL:
                     doc = collection.find_one(sort=[( '_id', pymongo.DESCENDING )])
                     logging.debug("%s", doc)
 
                     counter = 0
 
-                DataBank.set_words(0, [100, 10, 9, 8, 7, 6])
+                    cameraId = doc['cameraId']
+                    
+
+                    DataBank.set_words(4, [
+                        cameraId, 
+                        doc['xCm'], 
+                        doc['yCm'], 
+                        doc['timestamp']
+                    ])
 
                 time.sleep(duration)
 

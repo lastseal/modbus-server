@@ -12,7 +12,7 @@ npm install pm2@latest -g
 
 ## Configuración
 
-Variables de ambientes definidos en archivo ```.env```.
+Variables de ambientes definidos en archivo ```.env``` o en el archivo ```pm2.config.json```
 
 | Variable | Descripción |
 |---|---|
@@ -71,3 +71,4 @@ sudo systemctl status mongodb
 - [Documentación Modbus](https://pymodbustcp.readthedocs.io)
 - [Instalar MongoDB en Ubuntu 18.04](https://www.digitalocean.com/community/tutorials/como-instalar-mongodb-en-ubuntu-18-04-es)
 - [Instalar PostreSQL en Ubuntu 18.04](https://www.digitalocean.com/community/tutorials/como-instalar-y-utilizar-postgresql-en-ubuntu-18-04-es)
+- [Manejo de Procesos con PM2](https://pm2.keymetrics.io/docs/usage/process-management/)

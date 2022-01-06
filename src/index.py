@@ -45,7 +45,7 @@ logging.basicConfig(
 
 def main():
 
-    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser = argparse.ArgumentParser()
     parser.add_argument('--auth', action='store_true')
 
     args = parser.parse_args()

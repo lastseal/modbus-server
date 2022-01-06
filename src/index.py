@@ -49,7 +49,6 @@ def main():
     parser.add_argument('--auth', action='store_true')
 
     args = parser.parse_args()
-    print(args)
 
     try:
 
@@ -73,8 +72,6 @@ def main():
 
         logging.info("Modbus server listen in %s:%s", MODBUS_HOST, MODBUS_PORT)
 
-        print(collection.find_one({}))
-
         while True:
 
             try:
@@ -84,10 +81,10 @@ def main():
 
                     gte = datetime.now() - timedelta(minutes=TIMESTAMP_GTE)
 
-                    for CameraID in range(8)[1:]:
+                    for cameraId in range(8):
                     
                         doc = collection.find_one(
-                            {'CameraID':CameraID, 'timestamp': {'$gte': gte}}, 
+                            {'cameraId':cameraId, 'timestamp': {'$gte': gte}}, 
                             sort=[( 'timestamp', pymongo.DESCENDING )]
                         )
 
@@ -96,7 +93,6 @@ def main():
                             logging.debug("%s", doc)
 
                             timestamp = int(doc['timestamp'].timestamp())
-                            print(timestamp)
 
                             ##
                             # Separar el timestamp en 2 registros
@@ -107,20 +103,20 @@ def main():
                             ts2 = int.from_bytes(b[2:], 'big')
 
                             word = [
-                                doc['CameraID'],
-                                doc['Dcm'], 
-                                doc['Ccm'], 
+                                doc['cameraId'],
+                                doc['DCm'], 
+                                doc['CCm'], 
                                 ts1,
                                 ts2
                             ]
 
                         else:
 
-                            logging.debug("Data not found for CameraID %d", CameraID)
+                            logging.debug("Data not found for cameraId %d", cameraId)
 
-                            word = [CameraID, 0, 0, 0, 0]
+                            word = [cameraId, 0, 0, 0, 0]
 
-                        index = CameraID * 5
+                        index = cameraId * 5
 
                         DataBank.set_words(index, word)
 

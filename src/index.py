@@ -2,8 +2,11 @@
 
 #!/usr/bin/env python
 
-from pyModbusTCP.server import ModbusServer, DataBank
+from pyModbusTCP.server import ModbusServer
+from pyModbusTCP.server import DataBank
 from pymongo import MongoClient
+from datetime import datetime
+from datetime import timedelta
 
 import argparse
 import logging
@@ -57,20 +60,11 @@ def main():
 
         logging.info("Mongo DB connected to %s", dsn)
 
-        db = client["pollos"]
+        db = client["camaras"]
         collection = db["registros"]
 
         duration = 0.2
-        counter = 0
-
-        '''
-        collection.insert_one({
-            "cameraId": 1, 
-            "xCm": 10, 
-            "yCm": 10, 
-            "timestamp": 1641418302778
-        })
-        '''
+        counter = MONGO_POLL
 
         server = ModbusServer(MODBUS_HOST, MODBUS_PORT, no_block=True)
         server.start()
@@ -81,20 +75,49 @@ def main():
 
             try:
                 if counter > MONGO_POLL:
-                    doc = collection.find_one(sort=[( '_id', pymongo.DESCENDING )])
-                    logging.debug("%s", doc)
 
                     counter = 0
 
-                    cameraId = doc['cameraId']
-                    
+                    #doc = collection.find_one(sort=[( '_id', pymongo.DESCENDING )])
 
-                    DataBank.set_words(4, [
-                        cameraId, 
-                        doc['xCm'], 
-                        doc['yCm'], 
-                        doc['timestamp']
-                    ])
+                    gte = datetime.now() - timedelta(seconds=30)
+
+                    for CameraID in range(7):
+                    
+                        doc = collection.find_one({'CameraID':CameraID, 'timestamp': {'$gte': gte}}, sort=[( 'timestamp', pymongo.DESCENDING )])
+
+                        if doc is not None:
+
+                            logging.debug("%s", doc)
+
+                            timestamp = int(doc['timestamp'].timestamp())
+                            print(timestamp)
+
+                            ##
+                            # Separar el timestamp en 2 registros
+
+                            b = timestamp.to_bytes(4, 'big')
+
+                            ts1 = int.from_bytes(b[0:2], 'big')
+                            ts2 = int.from_bytes(b[2:], 'big')
+
+                            index = CameraID * 5
+
+                            word = [
+                                doc['CameraID'],
+                                doc['Dcm'], 
+                                doc['Ccm'], 
+                                ts1,
+                                ts2
+                            ]
+
+                        else:
+
+                            logging.debug("Data not found for CameraID %d", CameraID)
+
+                            word = [0, 0, 0, 0, 0]
+
+                        DataBank.set_words(0, word)
 
                 time.sleep(duration)
 

@@ -22,12 +22,12 @@ import os
 
 dotenv.load_dotenv()
 
-MODBUS_HOST = os.getenv("MODBUS_HOST")
+MODBUS_HOST = "127.0.0.1"
 MODBUS_PORT = int(os.getenv("MODBUS_PORT"))
 
 MONGO_USER = os.getenv("MONGO_USER")
 MONGO_PASS = os.getenv("MONGO_PASS")
-MONGO_HOST = os.getenv("MONGO_HOST")
+MONGO_HOST = "127.0.0.1"
 MONGO_PORT = int(os.getenv("MONGO_PORT"))
 MONGO_POLL = int(os.getenv("MONGO_POLL"))
 

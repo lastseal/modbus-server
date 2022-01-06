@@ -82,7 +82,7 @@ def main():
 
                     gte = datetime.now() - timedelta(minutes=TIMESTAMP_GTE)
 
-                    for CameraID in range(7):
+                    for CameraID in range(8)[1:]:
                     
                         doc = collection.find_one(
                             {'CameraID':CameraID, 'timestamp': {'$gte': gte}}, 

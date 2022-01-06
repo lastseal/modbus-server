@@ -31,6 +31,8 @@ MONGO_HOST = os.getenv("MONGO_HOST")
 MONGO_PORT = int(os.getenv("MONGO_PORT"))
 MONGO_POLL = int(os.getenv("MONGO_POLL"))
 
+TIMESTAMP_GTE = int(os.getenv("TIMESTAMP_GTE"))
+
 LOG_LEVEL = (os.getenv("LOG_LEVEL") or 'INFO').lower()
 
 logging.basicConfig(
@@ -78,13 +80,14 @@ def main():
 
                     counter = 0
 
-                    #doc = collection.find_one(sort=[( '_id', pymongo.DESCENDING )])
-
-                    gte = datetime.now() - timedelta(seconds=30)
+                    gte = datetime.now() - timedelta(minutes=TIMESTAMP_GTE)
 
                     for CameraID in range(7):
                     
-                        doc = collection.find_one({'CameraID':CameraID, 'timestamp': {'$gte': gte}}, sort=[( 'timestamp', pymongo.DESCENDING )])
+                        doc = collection.find_one(
+                            {'CameraID':CameraID, 'timestamp': {'$gte': gte}}, 
+                            sort=[( 'timestamp', pymongo.DESCENDING )]
+                        )
 
                         if doc is not None:
 
@@ -101,8 +104,6 @@ def main():
                             ts1 = int.from_bytes(b[0:2], 'big')
                             ts2 = int.from_bytes(b[2:], 'big')
 
-                            index = CameraID * 5
-
                             word = [
                                 doc['CameraID'],
                                 doc['Dcm'], 
@@ -115,9 +116,11 @@ def main():
 
                             logging.debug("Data not found for CameraID %d", CameraID)
 
-                            word = [0, 0, 0, 0, 0]
+                            word = [CameraID, 0, 0, 0, 0]
 
-                        DataBank.set_words(0, word)
+                        index = CameraID * 5
+
+                        DataBank.set_words(index, word)
 
                 time.sleep(duration)
 

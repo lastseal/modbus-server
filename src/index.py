@@ -73,6 +73,8 @@ def main():
 
         logging.info("Modbus server listen in %s:%s", MODBUS_HOST, MODBUS_PORT)
 
+        print(collection.find_one({}))
+
         while True:
 
             try:

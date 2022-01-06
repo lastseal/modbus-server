@@ -22,7 +22,7 @@ import os
 
 dotenv.load_dotenv()
 
-MODBUS_HOST = "127.0.0.1"
+MODBUS_HOST = "0.0.0.0"
 MODBUS_PORT = int(os.getenv("MODBUS_PORT"))
 
 MONGO_USER = os.getenv("MONGO_USER")

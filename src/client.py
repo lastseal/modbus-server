@@ -15,7 +15,7 @@ import socket
 devices = {
     0: {'host': '127.0.0.1', 'port': 5020, 'id': 2, 'name': 'dev0'},
 }
-registers = [0, 5, 10, 15, 20, 25, 30]
+registers = [0, 6, 12, 18, 24, 30, 36, 42]
 
 ts = dt.now()
 
@@ -41,8 +41,7 @@ for dev in devices:
     # if open() is ok, read register
     if c.is_open():
         for x in registers:
-            # read 4 registers at address x, store result in regs list
-            regs = c.read_holding_registers(x, 5)    # read function
+            regs = c.read_holding_registers(x, 6)    # read function
             if regs:
                 print("{:%d/%m/%Y %H:%M:%S} - {}".format(ts, regs))
     

@@ -23,6 +23,7 @@ Variables de ambientes definidos en archivo ```.env``` o en el archivo ```pm2.co
 | ```MONGO_POLL``` | Polling en segundos que se hace a la colección |
 | ```LOG_LEVEL``` | Nivel de log: INFO|DEBUG |
 | ```TIMESTAMP_GTE``` | Tiempo en minutos que se usa para buscar los registros más antiguos. |
+| ```ALERT_GTE``` | Tiempo en minutos que se usa para buscar alertas. |
 
 Ejemplo de archivo .env
 

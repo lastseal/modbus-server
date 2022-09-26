@@ -7,6 +7,7 @@ from pymongo import MongoClient
 from datetime import datetime
 from datetime import timedelta
 
+
 import argparse
 import logging
 import pymongo
@@ -16,6 +17,8 @@ import time
 import sys
 import os
 
+from server import Server
+
 ##
 #
 
@@ -24,11 +27,6 @@ dotenv.load_dotenv()
 MODBUS_HOST = "0.0.0.0"
 MODBUS_PORT = int(os.getenv("MODBUS_PORT"))
 
-MONGO_USER = os.getenv("MONGO_USER")
-MONGO_PASS = os.getenv("MONGO_PASS")
-MONGO_HOST = "127.0.0.1"
-MONGO_PORT = int(os.getenv("MONGO_PORT"))
-MONGO_POLL = int(os.getenv("MONGO_POLL"))
 
 TIMESTAMP_GTE = int(os.getenv("TIMESTAMP_GTE"))
 ALERT_GTE = int(os.getenv("ALERT_GTE"))
@@ -52,88 +50,92 @@ def main():
 
     try:
 
-        if args.auth:
-            dsn = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:{MONGO_PORT}"
-        else:
-            dsn = f"mongodb://{MONGO_HOST}:{MONGO_PORT}"
+        # if args.auth:
+        #     dsn = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:{MONGO_PORT}"
+        # else:
+        #     dsn = f"mongodb://{MONGO_HOST}:{MONGO_PORT}"
 
-        client = MongoClient(dsn)
+        # client = MongoClient(dsn)
 
-        logging.info("Mongo DB connected to %s", dsn)
+        # logging.info("Mongo DB connected to %s", dsn)
 
-        db = client["camaras"]
-        records = db["registros"]
-        alerts = db["alertas"]
+        # db = client["camaras"]
+        # records = db["registros"]
+        # alerts = db["alertas"]
 
         duration = 0.2
-        counter = MONGO_POLL
+        counter = 10
+        MONGO_POLL = 100
+        # counter = MONGO_POLL
+    
 
         server = ModbusServer(MODBUS_HOST, MODBUS_PORT, no_block=True)
         server.start()
 
-        logging.info("Modbus server listen in %s:%s", MODBUS_HOST, MODBUS_PORT)
+        # logging.info("Modbus server listen in %s:%s", MODBUS_HOST, MODBUS_PORT)
+
+        server_pull = Server()
+       
 
         while True:
 
             try:
-                if counter > MONGO_POLL:
+            
+                counter = 0
+                now = datetime.now()
+                response = server_pull.listening()
+                print(response)
 
-                    counter = 0
-                    now = datetime.now()
+                gte = now - timedelta(minutes=ALERT_GTE)
+                
+                alert = alerts.find_one(
+                    {'timestamp': {'$gte': gte}}, 
+                    sort=[( 'timestamp', pymongo.DESCENDING )]
+                )
 
-                    gte = now - timedelta(minutes=ALERT_GTE)
-                    
-                    alert = alerts.find_one(
-                        {'timestamp': {'$gte': gte}}, 
+                gte = now - timedelta(minutes=TIMESTAMP_GTE)
+
+                for cameraId in range(8):
+                
+                    doc = records.find_one(
+                        {'cameraId':cameraId, 'timestamp': {'$gte': gte}}, 
                         sort=[( 'timestamp', pymongo.DESCENDING )]
                     )
 
-                    gte = now - timedelta(minutes=TIMESTAMP_GTE)
+                    if doc is not None:
 
-                    for cameraId in range(8):
-                    
-                        doc = records.find_one(
-                            {'cameraId':cameraId, 'timestamp': {'$gte': gte}}, 
-                            sort=[( 'timestamp', pymongo.DESCENDING )]
-                        )
+                        logging.debug("%s", doc)
 
-                        if doc is not None:
+                        timestamp = int(doc['timestamp'].timestamp())
 
-                            logging.debug("%s", doc)
+                        ##
+                        # Separar el timestamp en 2 registros
 
-                            timestamp = int(doc['timestamp'].timestamp())
+                        b = timestamp.to_bytes(4, 'big')
 
-                            ##
-                            # Separar el timestamp en 2 registros
+                        ts1 = int.from_bytes(b[0:2], 'big')
+                        ts2 = int.from_bytes(b[2:], 'big')
 
-                            b = timestamp.to_bytes(4, 'big')
+                        word = [
+                            doc['cameraId'],
+                            doc['DCm'], 
+                            doc['CCm'], 
+                            ts1,
+                            ts2,
+                            0 if alert is None else 1
+                        ]
 
-                            ts1 = int.from_bytes(b[0:2], 'big')
-                            ts2 = int.from_bytes(b[2:], 'big')
+                    else:
 
-                            word = [
-                                doc['cameraId'],
-                                doc['DCm'], 
-                                doc['CCm'], 
-                                ts1,
-                                ts2,
-                                0 if alert is None else 1
-                            ]
+                        logging.debug("Data not found for cameraId %d", cameraId)
 
-                        else:
+                        word = [cameraId, 0, 0, 0, 0, 0 if alert is None else 1]
 
-                            logging.debug("Data not found for cameraId %d", cameraId)
+                    index = cameraId * 6
 
-                            word = [cameraId, 0, 0, 0, 0, 0 if alert is None else 1]
+                    DataBank.set_words(index, word)
 
-                        index = cameraId * 6
-
-                        DataBank.set_words(index, word)
-
-                time.sleep(duration)
-
-                counter += duration
-
+ 
             except Exception as ex:
                 logging.error(ex)
 

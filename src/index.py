@@ -50,33 +50,15 @@ def main():
 
     try:
 
-        # if args.auth:
-        #     dsn = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:{MONGO_PORT}"
-        # else:
-        #     dsn = f"mongodb://{MONGO_HOST}:{MONGO_PORT}"
-
-        # client = MongoClient(dsn)
-
-        # logging.info("Mongo DB connected to %s", dsn)
-
-        # db = client["camaras"]
-        # records = db["registros"]
-        # alerts = db["alertas"]
-
         duration = 0.2
         counter = 10
         MONGO_POLL = 100
-        # counter = MONGO_POLL
-    
 
         server = ModbusServer(MODBUS_HOST, MODBUS_PORT, no_block=True)
         server.start()
 
-        # logging.info("Modbus server listen in %s:%s", MODBUS_HOST, MODBUS_PORT)
-
         server_pull = Server()
        
-
         while True:
 
             try:

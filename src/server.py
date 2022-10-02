@@ -13,6 +13,6 @@ class Server:
 
 
     def listening(self):
-        self.message = self.socket.recv()
+        self.message = self.socket.recv_json()
         return self.message
 

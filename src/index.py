@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
 
-from pyModbusTCP.server import ModbusServer
-from pyModbusTCP.server import DataBank
-from server import Server
 from datetime import datetime
 from datetime import timedelta
+
+import modbus
+import mq
 
 import argparse
 import logging
 import dotenv
 import signal
-import sched
 import time
 import sys
 import os
@@ -21,12 +20,6 @@ import os
 
 dotenv.load_dotenv()
 
-MODBUS_HOST = "0.0.0.0"
-MODBUS_PORT = int(os.getenv("MODBUS_PORT"))
-
-TIMESTAMP_GTE = int(os.getenv("TIMESTAMP_GTE"))
-ALERT_GTE = int(os.getenv("ALERT_GTE"))
-
 LOG_LEVEL = (os.getenv("LOG_LEVEL") or 'INFO').lower()
 
 logging.basicConfig(
@@ -34,13 +27,10 @@ logging.basicConfig(
     level=logging.DEBUG if LOG_LEVEL == 'debug' else logging.INFO
 )
 
-records = [ {"cameraId": i, "DCm": 0, "CCm": 0, "timestamp": now} for i in range(8)]
-alert = { "value": 0, "message": None, "timestamp": now}
-
 ##
 #
-
-def setWord(doc):
+'''
+def setWord(doc, alert):
 
     cameraId = doc['cameraId']
 
@@ -82,7 +72,7 @@ def cleanAlertFlag():
 ##
 #
 
-def cleanDoc(cameradId):
+def cleanDoc(cameraId, alert):
 
     logging.debug("cleaning record of %d", cameraId)
 
@@ -94,66 +84,9 @@ def cleanDoc(cameradId):
         0, 
         0, 
         0, 
-        0 if alert is None else 1
+        alert
     ])
-
-##
-#
-
-def main():
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--auth', action='store_true')
-
-    args = parser.parse_args()
-
-    try:
-
-        server = ModbusServer(MODBUS_HOST, MODBUS_PORT, no_block=True)
-        server.start()
-
-        server_pull = Server()
-
-        now = datetime.now()
-
-        sched1 = sched.scheduler(time.time, time.sleep)
-        sched1.run()
-
-        while True:
-
-            try:
-
-                doc = server_pull.listening()
-                logging.info("doc: %s", doc)
-
-                docType = doc['type']
-
-                if docType == "alert":
-                    alert['value'] = 1
-                    alert['message'] = doc['message']
-                    alert['timestamp'] = datetime.now()
-
-                    sched1.enter(ALERT_GTE*60, 1, cleanAlertFlag)
-
-                elif docType == "record":
-                    #timestamp = int(doc['timestamp'].timestamp())
-
-                    setWord(doc)
-
-                    sched1.enter(TIMESTAMP_GTE*60, 1, cleanDoc, kwargs={
-                        'cameraId': doc['cameraId']
-                    })
-
-                else:
-                    logging.warning("data not support")
- 
-            except Exception as ex:
-                logging.error(ex)
-
-    except Exception as ex:
-
-        logging.error(ex)
-        server.stop()
+'''
 
 ##
 #
@@ -163,7 +96,7 @@ def handle_sigint(signum, frame):
     sys.exit(0)
 
 def handle_sigterm(signum, frame):
-    logging.warning("sigterm received (%d)", signum)
+    logging.info("sigterm received (%d)", signum)
     sys.exit(0)
 
 if __name__ == "__main__":
@@ -171,4 +104,10 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT,  handle_sigint)
     signal.signal(signal.SIGTERM, handle_sigterm)
 
-    main()
+    try:
+
+        modbus.run()
+        mq.run()
+
+    except Exception as ex:
+        logging.error(ex)

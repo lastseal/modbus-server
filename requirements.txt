@@ -1,2 +1,4 @@
 pyModbusTCP>=0.1.10
 python-dotenv>=0.19.2
+pyzmq>=24.0.1
+pyinstaller>=5.5
